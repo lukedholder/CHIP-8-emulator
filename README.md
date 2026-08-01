@@ -1,6 +1,8 @@
 # CHIP-8-emulator
 
 
+Work-in-Progress Project
+
 
 * Glitch Ghost, an original puzzle game abouts scaring people to death (CHIP-8)
 https://johnearnest.github.io/chip8Archive/play.html?p=glitchGhost
