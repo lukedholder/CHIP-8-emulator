@@ -2,8 +2,7 @@
 #include <cstdio>
 #include "chip8.hpp"
 
-constexpr int VIDEO_WIDTH = 64;
-constexpr int VIDEO_HEIGHT = 32;
+
 constexpr int SCALE = 15;
 
 int main(int argc, char* argv[]) {
@@ -28,8 +27,8 @@ int main(int argc, char* argv[]) {
         "CHIP-8",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        VIDEO_WIDTH * SCALE,
-        VIDEO_HEIGHT * SCALE,
+        Chip8::VIDEO_WIDTH * SCALE,
+        Chip8::VIDEO_HEIGHT * SCALE,
         SDL_WINDOW_SHOWN);
 
     if (window == nullptr) {

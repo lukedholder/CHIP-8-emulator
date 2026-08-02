@@ -25,12 +25,11 @@ constexpr std::array<uint8_t, Chip8::FONTSET_SIZE> FONTSET = {
     0xF0, 0x80, 0xF0, 0x80, 0x80   // F
 };
 
-} // namespace
+}
 
 Chip8::Chip8() {
     pc = START_ADDRESS;
 
-    // Assign the font set into the memory
     for (unsigned int i = 0; i < FONTSET_SIZE; ++i) {
         memory[FONTSET_START_ADDRESS + i] = FONTSET[i];
     }
@@ -45,13 +44,11 @@ bool Chip8::loadROM(const std::string& filename) {
     }
 
     const std::streamsize size = file.tellg();
-    // Bounds check: MEMORY_SIZE - START_ADDRESS is 3584 bytes of available space.
-    // Without this check, a 5000-byte file writes past the end of memory -- a buffer overflow, corrupting whatever lives next in this process.
+    // Reject oversized ROMs: writing past memory.end() would be a buffer overflow.
     if (size <= 0 || static_cast<unsigned int>(size) > MEMORY_SIZE - START_ADDRESS) {
         return false;
     }
 
-    // rewind to read
     file.seekg(0, std::ios::beg);
 
     if (!file.read(reinterpret_cast<char*>(memory.data() + START_ADDRESS), size)) {
