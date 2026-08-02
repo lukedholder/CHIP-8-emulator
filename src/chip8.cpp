@@ -71,7 +71,7 @@ void Chip8::cycle() {
 
     const uint8_t x     = static_cast<uint8_t>((opcode & 0x0F00) >> 8);
     const uint8_t kk    = static_cast<uint8_t>(opcode & 0x00FF);
-    const uint16_t nnn  = static_cast<uint8_t>(opcode & 0x0FFF);
+    const uint16_t nnn  = static_cast<uint16_t>(opcode & 0x0FFF);
 
     switch (opcode & 0xF000) {
         case 0x1000:    // 1NNN: jump to NNN
@@ -84,6 +84,7 @@ void Chip8::cycle() {
 
         case 0x7000:    // 7XNN: VX += NN (no carry)
             V[x] = static_cast<uint8_t>(V[x] + kk);
+            break;
 
         case 0xA000:    // ANNN: I = NNN
             I = nnn;
