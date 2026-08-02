@@ -59,15 +59,17 @@ bool Chip8::loadROM(const std::string& filename) {
 }
 
 void Chip8::unknownOpcode(uint16_t opcode) const {
-    std::fprintf(stderr, "Unknown opcode %04X at %03X\n", opcode, pc - 2);
+    const uint16_t addr = static_cast<uint16_t>(pc - 2);
+    if (reportedUnknown[addr]) {
+        return;
+    }
+    reportedUnknown[addr] = true;
+    std::fprintf(stderr, "Unknown opcode %04X at %03X\n", opcode, addr);
 }
 
 void Chip8::cycle() {
     const uint16_t opcode = static_cast<uint16_t>((memory[pc] << 8) | memory[pc + 1]);
     pc += 2;
-
-    // TEMPORARY
-    std::printf("%03X: %04X\n", pc - 2, opcode);
 
     const uint8_t x     = static_cast<uint8_t>((opcode & 0x0F00) >> 8);
     const uint8_t kk    = static_cast<uint8_t>(opcode & 0x00FF);
@@ -76,9 +78,9 @@ void Chip8::cycle() {
     switch (opcode & 0xF000) {
         case 0x0000:
             switch (opcode & 0x00FF) {
-            case 0x00E0:    // 00E0: clear the display
-                video.fill(0);  // std::array::fill is one call instead of a loop
-                break;
+                case 0x00E0:    // 00E0: clear the display
+                    video.fill(0);  // std::array::fill is one call instead of a loop
+                    break;
 
                 default:
                     unknownOpcode(opcode);
@@ -102,18 +104,48 @@ void Chip8::cycle() {
             I = nnn;
             break;
 
+        case 0xD000: {  // DXYN: draw N-row sprite from I at (VX, VY)
+            const uint8_t y = static_cast<uint8_t>((opcode & 0x00F0) >> 4);
+            const uint8_t n = static_cast<uint8_t>((opcode & 0x000F));
+
+            const unsigned int startX = V[x] % VIDEO_WIDTH;
+            const unsigned int startY = V[y] % VIDEO_HEIGHT;
+
+            V[0xF] = 0; // reset collision flag at register[15]
+
+            for (unsigned int row = 0; row < n; ++row) {
+                const unsigned int py = startY + row;
+                if (py >= VIDEO_HEIGHT) {
+                    break;  // clip at the bottom edge
+                }
+
+                const uint8_t spriteByte = memory[I + row];
+
+                for (unsigned int col = 0; col < 8; ++col) {
+                    const unsigned int px = startX + col;
+                    if (px >= VIDEO_WIDTH) {
+                        break;  // clip at the right edge
+                    }
+
+                    if ((spriteByte & (0x80u >> col)) == 0) {
+                        continue;   // sprite bit clear: leave the screen
+                    }
+
+                    uint32_t& screenPixel = video[py * VIDEO_WIDTH + px];
+
+                    if (screenPixel != 0) {
+                        V[0xF] = 1; // a lit pixel is about to be turned off
+                    }
+
+                    screenPixel ^= 0xFFFFFFFFu;
+                }
+            }
+
+            break;
+        }
+
         default:
             unknownOpcode(opcode);
             break;
-    }
-}
-
-// TEMPORARY: proves the render path works before DXYN exists
-void Chip8::testPattern() {
-    for (unsigned int y = 0; y < VIDEO_HEIGHT; ++y) {
-        for (unsigned int x = 0; x < VIDEO_WIDTH; ++x) {
-            const bool on = (((x / 4) + (y / 4)) % 2) == 0;
-            video[y * VIDEO_WIDTH + x] = on ? 0xFFFFFFFFu : 0x00000000u;
-        }
     }
 }

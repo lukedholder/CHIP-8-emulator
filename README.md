@@ -25,3 +25,8 @@ https://johnearnest.github.io/chip8Archive/play.html?p=redOctober
 
 * An Evening to Die For, a murder mystery game in the vein of Clue (XO-CHIP)
 https://johnearnest.github.io/chip8Archive/play.html?p=anEveningToDieFor
+
+
+
+
+![alt text](ibm-logo.png)

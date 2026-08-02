@@ -1,11 +1,13 @@
 #include "chip8.hpp"
 #include "platform.hpp"
 
+#include <SDL.h>
 #include <cstdio>
 #include <stdexcept>
 
 
 constexpr int SCALE = 15;
+constexpr int CYCLES_PER_FRAME = 10;    // Placeholder
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -18,8 +20,6 @@ int main(int argc, char* argv[]) {
         std::fprintf(stderr, "Failed to load ROM: %s\n", argv[1]);
         return 1;
     }
-
-    chip8.testPattern();    // TEMPORARY
     
     try {
         Platform platform("Chip-8",
@@ -29,7 +29,12 @@ int main(int argc, char* argv[]) {
                             Chip8::VIDEO_HEIGHT);
 
         while (platform.processInput()) {
+            for (int i = 0; i < CYCLES_PER_FRAME; ++i) {
+                chip8.cycle();
+            }
+            
             platform.update(chip8.videoData());
+            SDL_Delay(16);
         }
     }
     catch (const std::exception& e) {
