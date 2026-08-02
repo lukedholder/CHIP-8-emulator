@@ -20,6 +20,7 @@ public:
     Chip8();
 
     bool loadROM(const std::string& filename);
+    void cycle();
 
 private:
     std::array<uint8_t, MEMORY_SIZE>    memory{};
@@ -34,4 +35,6 @@ private:
     uint8_t sp{};
     uint8_t delayTimer{};
     uint8_t soundTimer{};
+
+    void unkownOpcode(uint16_t opcode) const;
 };

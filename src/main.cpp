@@ -6,7 +6,6 @@
 constexpr int SCALE = 15;
 
 int main(int argc, char* argv[]) {
-    // Take a ROM path from the command line
     if (argc < 2) {
         std::fprintf(stderr, "Usage: %s <rom-file>\n", argv[0]);
         return 1;
@@ -16,6 +15,11 @@ int main(int argc, char* argv[]) {
     if (!chip8.loadROM(argv[1])) {
         std::fprintf(stderr, "Failed to load ROM: %s\n", argv[1]);
         return 1;
+    }
+
+    // TEMPORARY: trace the first instructions to verify decoding
+    for (int i = 0; i < 12; ++i) {
+        chip8.cycle();
     }
     
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {

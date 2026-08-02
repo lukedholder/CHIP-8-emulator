@@ -1,9 +1,9 @@
 #include "chip8.hpp"
 
 #include <fstream>
+#include <cstdio>
 
-// Anonymous namespace gives FONTSET internal linkage. 
-// It's the modern replacement for 'static' at file scope
+
 namespace {
 
 constexpr std::array<uint8_t, Chip8::FONTSET_SIZE> FONTSET = {
@@ -56,4 +56,41 @@ bool Chip8::loadROM(const std::string& filename) {
     }
 
     return true;
+}
+
+void Chip8::unkownOpcode(uint16_t opcode) const {
+    std::fprintf(stderr, "Unkown opcode %04X at %03X\n", opcode, pc - 2);
+}
+
+void Chip8::cycle() {
+    const uint16_t opcode = static_cast<uint16_t>((memory[pc] << 8) | memory[pc + 1]);
+    pc += 2;
+
+    // TEMPORARY
+    std::printf("%03X: %04X\n", pc - 2, opcode);
+
+    const uint8_t x     = static_cast<uint8_t>((opcode & 0x0F00) >> 8);
+    const uint8_t kk    = static_cast<uint8_t>(opcode & 0x00FF);
+    const uint16_t nnn  = static_cast<uint8_t>(opcode & 0x0FFF);
+
+    switch (opcode & 0xF000) {
+        case 0x1000:    // 1NNN: jump to NNN
+            pc = nnn;
+            break;
+
+        case 0x6000:    // 6XNN: VX = NN
+            V[x] = kk;
+            break;
+
+        case 0x7000:    // 7XNN: VX += NN (no carry)
+            V[x] = static_cast<uint8_t>(V[x] + kk);
+
+        case 0xA000:    // ANNN: I = NNN
+            I = nnn;
+            break;
+
+        default:
+            unkownOpcode(opcode);
+            break;
+    }
 }
