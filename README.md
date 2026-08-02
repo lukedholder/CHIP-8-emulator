@@ -4,6 +4,10 @@
 Work-in-Progress Project
 
 
+* https://johnearnest.github.io/chip8Archive/
+
+* https://github.com/Timendus/chip8-test-suite
+
 * Glitch Ghost, an original puzzle game abouts scaring people to death (CHIP-8)
 https://johnearnest.github.io/chip8Archive/play.html?p=glitchGhost
 

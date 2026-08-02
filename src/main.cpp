@@ -1,11 +1,24 @@
 #include <SDL.h>
 #include <cstdio>
+#include "chip8.hpp"
 
 constexpr int VIDEO_WIDTH = 64;
 constexpr int VIDEO_HEIGHT = 32;
 constexpr int SCALE = 15;
 
 int main(int argc, char* argv[]) {
+    // Take a ROM path from the command line
+    if (argc < 2) {
+        std::fprintf(stderr, "Usage: %s <rom-file>\n", argv[0]);
+        return 1;
+    }
+
+    Chip8 chip8;
+    if (!chip8.loadROM(argv[1])) {
+        std::fprintf(stderr, "Failed to load ROM: %s\n", argv[1]);
+        return 1;
+    }
+    
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return 1;

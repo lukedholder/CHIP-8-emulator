@@ -8,6 +8,7 @@ find_package(SDL2 CONFIG REQUIRED)
 
 add_executable(chip8
 	src/main.cpp
+	src/chip8.cpp
 )
 
 if (MSVC)
