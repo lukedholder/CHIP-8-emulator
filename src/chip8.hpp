@@ -22,6 +22,10 @@ public:
     bool loadROM(const std::string& filename);
     void cycle();
 
+    const uint32_t* videoData() const {return video.data(); }
+
+    void testPattern(); // TEMPORARY
+
 private:
     std::array<uint8_t, MEMORY_SIZE>    memory{};
     std::array<uint8_t, REGISTER_COUNT> V{};

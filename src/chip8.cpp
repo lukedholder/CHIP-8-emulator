@@ -59,7 +59,7 @@ bool Chip8::loadROM(const std::string& filename) {
 }
 
 void Chip8::unknownOpcode(uint16_t opcode) const {
-    std::fprintf(stderr, "Unkown opcode %04X at %03X\n", opcode, pc - 2);
+    std::fprintf(stderr, "Unknown opcode %04X at %03X\n", opcode, pc - 2);
 }
 
 void Chip8::cycle() {
@@ -74,6 +74,18 @@ void Chip8::cycle() {
     const uint16_t nnn  = static_cast<uint16_t>(opcode & 0x0FFF);
 
     switch (opcode & 0xF000) {
+        case 0x0000:
+            switch (opcode & 0x00FF) {
+            case 0x00E0:    // 00E0: clear the display
+                video.fill(0);  // std::array::fill is one call instead of a loop
+                break;
+
+                default:
+                    unknownOpcode(opcode);
+                    break;
+            }
+            break;
+        
         case 0x1000:    // 1NNN: jump to NNN
             pc = nnn;
             break;
@@ -93,5 +105,15 @@ void Chip8::cycle() {
         default:
             unknownOpcode(opcode);
             break;
+    }
+}
+
+// TEMPORARY: proves the render path works before DXYN exists
+void Chip8::testPattern() {
+    for (unsigned int y = 0; y < VIDEO_HEIGHT; ++y) {
+        for (unsigned int x = 0; x < VIDEO_WIDTH; ++x) {
+            const bool on = (((x / 4) + (y / 4)) % 2) == 0;
+            video[y * VIDEO_WIDTH + x] = on ? 0xFFFFFFFFu : 0x00000000u;
+        }
     }
 }

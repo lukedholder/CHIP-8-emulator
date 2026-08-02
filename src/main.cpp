@@ -1,6 +1,8 @@
-#include <SDL.h>
-#include <cstdio>
 #include "chip8.hpp"
+#include "platform.hpp"
+
+#include <cstdio>
+#include <stdexcept>
 
 
 constexpr int SCALE = 15;
@@ -17,57 +19,23 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // TEMPORARY: trace the first instructions to verify decoding
-    for (int i = 0; i < 12; ++i) {
-        chip8.cycle();
-    }
+    chip8.testPattern();    // TEMPORARY
     
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        std::fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
-        return 1;
-    }
+    try {
+        Platform platform("Chip-8",
+                            Chip8::VIDEO_WIDTH * SCALE,
+                            Chip8::VIDEO_HEIGHT * SCALE,
+                            Chip8::VIDEO_WIDTH,
+                            Chip8::VIDEO_HEIGHT);
 
-    SDL_Window* window = SDL_CreateWindow(
-        "CHIP-8",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        Chip8::VIDEO_WIDTH * SCALE,
-        Chip8::VIDEO_HEIGHT * SCALE,
-        SDL_WINDOW_SHOWN);
-
-    if (window == nullptr) {
-        std::fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-        SDL_Quit();
-        return 1;
-    }
-
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == nullptr) {
-        std::fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
-
-    bool running = true;
-    while (running) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                running = false;
-            }
-            else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
-                running = false;
-            }
+        while (platform.processInput()) {
+            platform.update(chip8.videoData());
         }
-
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-        SDL_RenderPresent(renderer);
+    }
+    catch (const std::exception& e) {
+        std::fprintf(stderr, "%s\n", e.what());
+        return 1;
     }
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
     return 0;
 }
