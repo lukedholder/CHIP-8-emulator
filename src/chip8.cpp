@@ -58,7 +58,7 @@ bool Chip8::loadROM(const std::string& filename) {
     return true;
 }
 
-void Chip8::unkownOpcode(uint16_t opcode) const {
+void Chip8::unknownOpcode(uint16_t opcode) const {
     std::fprintf(stderr, "Unkown opcode %04X at %03X\n", opcode, pc - 2);
 }
 
@@ -91,7 +91,7 @@ void Chip8::cycle() {
             break;
 
         default:
-            unkownOpcode(opcode);
+            unknownOpcode(opcode);
             break;
     }
 }

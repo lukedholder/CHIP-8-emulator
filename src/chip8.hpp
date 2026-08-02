@@ -36,5 +36,5 @@ private:
     uint8_t delayTimer{};
     uint8_t soundTimer{};
 
-    void unkownOpcode(uint16_t opcode) const;
+    void unknownOpcode(uint16_t opcode) const;
 };
