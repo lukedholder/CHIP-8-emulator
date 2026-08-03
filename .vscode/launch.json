@@ -6,7 +6,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/Debug/chip8.exe",
-            "args": ["${workspaceFolder}/roms/bin/2-ibm-logo.ch8"],
+            "args": ["${workspaceFolder}/roms/bin/3-corax+.ch8"],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "integratedTerminal"

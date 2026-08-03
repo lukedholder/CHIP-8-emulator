@@ -32,9 +32,9 @@ private:
 
     std::array<uint32_t, VIDEO_WIDTH * VIDEO_HEIGHT> video{};
 
-    uint16_t I{};
-    uint16_t pc{};
-    uint8_t sp{};
+    uint16_t I{};   // Index register
+    uint16_t pc{};  // Program Counter
+    uint8_t sp{};   // Stack Pointer
     uint8_t delayTimer{};
     uint8_t soundTimer{};
 

@@ -58,7 +58,7 @@ bool Chip8::loadROM(const std::string& filename) {
     return true;
 }
 
-void Chip8::unknownOpcode(uint16_t opcode) const {
+void Chip8::unknownOpcode(uint16_t opcode) {
     const uint16_t addr = static_cast<uint16_t>(pc - 2);
     if (reportedUnknown[addr]) {
         return;
@@ -72,6 +72,7 @@ void Chip8::cycle() {
     pc += 2;
 
     const uint8_t x     = static_cast<uint8_t>((opcode & 0x0F00) >> 8);
+    const uint8_t y     = static_cast<uint8_t>((opcode & 0x00F0) >> 4);
     const uint8_t kk    = static_cast<uint8_t>(opcode & 0x00FF);
     const uint16_t nnn  = static_cast<uint16_t>(opcode & 0x0FFF);
 
@@ -80,6 +81,15 @@ void Chip8::cycle() {
             switch (opcode & 0x00FF) {
                 case 0x00E0:    // 00E0: clear the display
                     video.fill(0);  // std::array::fill is one call instead of a loop
+                    break;
+
+                case 0x00EE:    // 00EE: return from subroutine
+                    if (sp == 0) {
+                        std::fprintf(stderr, "Stack underflow at %03X\n", pc - 2);
+                        break;
+                    }
+                    --sp;
+                    pc = stack[sp];
                     break;
 
                 default:
@@ -92,6 +102,38 @@ void Chip8::cycle() {
             pc = nnn;
             break;
 
+        case 0x2000:    // 2NNN: call subroutine at NNN
+            if (sp >= STACK_SIZE) {
+                std::fprintf(stderr, "Stack overflow at %03X\n", pc - 2);
+                break;
+            }
+            stack[sp] = pc;
+            ++sp;
+            pc = nnn;
+            break;
+
+        case 0x3000:    // 3XNN: skip next if VX == NN
+            if (V[x] == kk) {
+                pc += 2;
+            }
+            break;
+
+        case 0x4000:    // 4XNN: skip next if VX != NN
+            if (V[x] != kk) {
+                pc += 2;
+            }
+            break;
+
+        case 0x5000:    // 5XY0: skip next if VX == VY
+            if ((opcode & 0x000F) != 0) {
+                unknownOpcode(opcode);
+                break;
+            }
+            if (V[x] == V[y]) {
+                pc += 2;
+            }
+            break;
+
         case 0x6000:    // 6XNN: VX = NN
             V[x] = kk;
             break;
@@ -100,12 +142,25 @@ void Chip8::cycle() {
             V[x] = static_cast<uint8_t>(V[x] + kk);
             break;
 
+        case 0x9000: // 9XY0: skip next if VX != VY
+            if ((opcode & 0x000F) != 0) {
+                unknownOpcode(opcode);
+                break;
+            }
+            if (V[x] != V[y]) {
+                pc += 2;
+            }
+            break;
+
         case 0xA000:    // ANNN: I = NNN
             I = nnn;
             break;
 
+        case 0xB000:    // BNNN: jump to NNN + V0
+            pc = static_cast<uint16_t>((nnn + V[0]) & 0x0FFF);
+            break;
+
         case 0xD000: {  // DXYN: draw N-row sprite from I at (VX, VY)
-            const uint8_t y = static_cast<uint8_t>((opcode & 0x00F0) >> 4);
             const uint8_t n = static_cast<uint8_t>((opcode & 0x000F));
 
             const unsigned int startX = V[x] % VIDEO_WIDTH;
