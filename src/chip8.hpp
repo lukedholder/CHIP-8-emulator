@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <random>
 
 class Chip8 {
 public:
@@ -25,6 +26,8 @@ public:
     const uint32_t* videoData() const {return video.data(); }
 
     std::array<uint8_t, KEY_COUNT>& keypadState() { return keypad; }
+    
+    void tickTimers();
 
 private:
     std::array<uint8_t, MEMORY_SIZE>    memory{};
@@ -43,4 +46,7 @@ private:
     std::array<bool, MEMORY_SIZE> reportedUnknown{};
 
     void unknownOpcode(uint16_t opcode);
+
+    std::mt19937 rng;
+    std::uniform_int_distribution<unsigned int> randomByte{0, 255};
 };

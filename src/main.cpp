@@ -32,6 +32,8 @@ int main(int argc, char* argv[]) {
             for (int i = 0; i < CYCLES_PER_FRAME; ++i) {
                 chip8.cycle();
             }
+
+            chip8.tickTimers(); // around 60Hz, once per frame
             
             platform.update(chip8.videoData());
             SDL_Delay(16);

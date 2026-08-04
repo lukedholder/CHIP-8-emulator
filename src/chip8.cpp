@@ -27,7 +27,7 @@ constexpr std::array<uint8_t, Chip8::FONTSET_SIZE> FONTSET = {
 
 }
 
-Chip8::Chip8() {
+Chip8::Chip8() : rng(std::random_device{}()) {
     pc = START_ADDRESS;
 
     for (unsigned int i = 0; i < FONTSET_SIZE; ++i) {
@@ -65,6 +65,15 @@ void Chip8::unknownOpcode(uint16_t opcode) {
     }
     reportedUnknown[addr] = true;
     std::fprintf(stderr, "Unknown opcode %04X at %03X\n", opcode, addr);
+}
+
+void Chip8::tickTimers() {
+    if (delayTimer > 0) {
+        --delayTimer;
+    }
+    if (soundTimer > 0) {
+        --soundTimer;
+    }
 }
 
 void Chip8::cycle() {
@@ -219,6 +228,10 @@ void Chip8::cycle() {
             pc = static_cast<uint16_t>((nnn + V[0]) & 0x0FFF);
             break;
 
+        case 0xC000:    // CXNN: VX = random byte AND NN
+            V[x] = static_cast<uint8_t>(randomByte(rng) & kk);
+            break;
+
         case 0xD000: {  // DXYN: draw N-row sprite from I at (VX, VY)
             const uint8_t n = static_cast<uint8_t>((opcode & 0x000F));
 
@@ -280,6 +293,46 @@ void Chip8::cycle() {
 
         case 0xF000:
             switch (opcode & 0x00FF) {
+                case 0x0007:    // FX07: VX = delay timer
+                    V[x] = delayTimer;
+                    break;
+
+                case 0x0015:    // FX15: delay timer = VX
+                    delayTimer = V[x];
+                    break;
+
+                case 0x0018:    // FX18: sound timer = VX
+                    soundTimer = V[x];
+                    break;
+
+                case 0x001E:    // FX1E: I += VX
+                    I = static_cast<uint16_t>(I + V[x]);
+                    break;
+
+                case 0x0029:    // FX29: I = address of font sprite for digit VX
+                    I = static_cast<uint16_t> (FONTSET_START_ADDRESS + (V[x] & 0x0F) * 5);
+                    break;
+
+                case 0x0033: {  // FX33: BCD of VX into memory[I...I+2]
+                    const uint8_t value = V[x];
+                    memory[I]       = static_cast<uint8_t>(value / 100);
+                    memory[I + 1]   = static_cast<uint8_t>((value / 10) % 10);
+                    memory[I + 2]   = static_cast<uint8_t>(value % 10);
+                    break;
+                }
+
+                case 0x0055:    // FX55: store V0...VX to memory at I
+                    for (uint8_t i = 0; i <= x; ++i) {
+                        memory[I + i] = V[i];
+                    }
+                    break;
+
+                case 0x0065:    // FX65: load V0...VX from memory at I
+                    for (uint8_t i = 0; i <= x; ++i) {
+                        V[i] = memory[I + i];
+                    }
+                    break;
+                
                 case 0x000A: {  // FX0A: wait for a key press, store it in VX
                     bool pressed = false;
                     for (uint8_t k = 0; k < KEY_COUNT; ++k) {
