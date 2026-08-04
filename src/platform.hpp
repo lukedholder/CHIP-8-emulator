@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 #include <cstdint>
+#include <array>
 
 class Platform {
 public:
@@ -14,7 +15,7 @@ public:
     Platform& operator=(const Platform&) = delete;
 
     void update(const uint32_t* pixels);
-    bool processInput();
+    bool processInput(std::array<uint8_t, 16>& keys);
 
 private:
         void cleanup() noexcept;    // destructors must not throw

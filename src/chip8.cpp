@@ -142,6 +142,65 @@ void Chip8::cycle() {
             V[x] = static_cast<uint8_t>(V[x] + kk);
             break;
 
+        case 0x8000:    // Arithmetic family
+            switch (opcode & 0x000F) {
+                case 0x0000:    // 8XY0: VX = VY
+                    V[x] = V[y];
+                    break;
+                
+                case 0x0001:    // 8XY1: VX |= VY   (OR)
+                    V[x] = static_cast<uint8_t>(V[x] | V[y]);
+                    break;
+
+                case 0x0002:    // 8XY2: VX &= VY   (AND)
+                    V[x] = static_cast<uint8_t>(V[x] & V[y]);
+                    break;
+
+                case 0x0003:    // 8XY3: VX ^= VY   (XOR)
+                    V[x] = static_cast<uint8_t>(V[x] ^ V[y]);
+                    break;
+
+                case 0x0004: {  // 8XY4: VX += VY, VF = carry
+                    const unsigned int sum = V[x] + V[y];
+                    V[x] = static_cast<uint8_t>(sum);
+                    V[0xF] = (sum > 0xFF) ? 1 : 0;
+                    break;
+                }
+
+                case 0x0005: {  // 8XY5: VX -= VY, VF = 1 if no borrow
+                    const uint8_t flag = (V[x] >= V[y]) ? 1 : 0;
+                    V[x] = static_cast<uint8_t>(V[x] - V[y]);
+                    V[0xF] = flag;
+                    break;
+                }
+
+                case 0x0006: {  // 8XY6: VX >>= 1, VF = bit shifted out
+                    const uint8_t flag = static_cast<uint8_t>(V[x] & 0x01);
+                    V[x] = static_cast<uint8_t>(V[x] >> 1);
+                    V[0xF] = flag;
+                    break;  // note: VY was intentionally unused (modern quirk)
+                }
+
+                case 0x0007: {  // 8XY7: VX = VY - VX, VF = 1 if no borrow
+                    const uint8_t flag = (V[y] >= V[x]) ? 1 : 0;
+                    V[x] =  static_cast<uint8_t>(V[y] - V[x]);
+                    V[0xF] = flag;
+                    break;
+                }
+
+                case 0x000E: {  // 8XYE: VX <<= 1, VF = bit shifted out
+                    const uint8_t flag = static_cast<uint8_t>((V[x] & 0x80) >> 7);
+                    V[x] =  static_cast<uint8_t>(V[x] << 1);
+                    V[0xF] = flag;
+                    break;  // note: VY was intentionally unused (modern quirk)
+                }
+
+                default:
+                    unknownOpcode(opcode);
+                    break;
+            }
+            break;
+
         case 0x9000: // 9XY0: skip next if VX != VY
             if ((opcode & 0x000F) != 0) {
                 unknownOpcode(opcode);
@@ -198,6 +257,49 @@ void Chip8::cycle() {
 
             break;
         }
+
+        case 0xE000:
+            switch (opcode & 0x00FF) {
+                case 0x009E:    //EX9E: skip next if key VX is pressed
+                    if (keypad[V[x] & 0x0F] != 0) {
+                        pc += 2;
+                    }
+                    break;
+
+                case 0x00A1:    // EXA1: skip next if VX is NOT pressed
+                    if (keypad[V[x] & 0x0F] == 0) {
+                        pc +=2;
+                    }
+                    break;
+
+                default:
+                    unknownOpcode(opcode);
+                    break;
+            }
+            break;
+
+        case 0xF000:
+            switch (opcode & 0x00FF) {
+                case 0x000A: {  // FX0A: wait for a key press, store it in VX
+                    bool pressed = false;
+                    for (uint8_t k = 0; k < KEY_COUNT; ++k) {
+                        if (keypad[k] != 0) {
+                            V[x] = k;
+                            pressed = true;
+                            break;
+                        }
+                    }
+                    if (!pressed) {
+                        pc -= 2;    // re-run this instructino next cycle
+                    }
+                    break;
+                }
+
+                default:
+                    unknownOpcode(opcode);
+                    break;
+            }
+            break;
 
         default:
             unknownOpcode(opcode);

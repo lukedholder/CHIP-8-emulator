@@ -24,6 +24,8 @@ public:
 
     const uint32_t* videoData() const {return video.data(); }
 
+    std::array<uint8_t, KEY_COUNT>& keypadState() { return keypad; }
+
 private:
     std::array<uint8_t, MEMORY_SIZE>    memory{};
     std::array<uint8_t, REGISTER_COUNT> V{};

@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
                             Chip8::VIDEO_WIDTH,
                             Chip8::VIDEO_HEIGHT);
 
-        while (platform.processInput()) {
+        while (platform.processInput(chip8.keypadState())) {
             for (int i = 0; i < CYCLES_PER_FRAME; ++i) {
                 chip8.cycle();
             }
