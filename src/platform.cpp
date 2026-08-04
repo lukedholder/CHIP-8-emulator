@@ -7,7 +7,7 @@ Platform::Platform(const char* title,
                     int windowWidth, int windowHeight,
                     int textureWidth, int textureHeight) {
     
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
         throw std::runtime_error(std::string("SDL_Init failed: ") + SDL_GetError());
     }
 
@@ -39,6 +39,20 @@ Platform::Platform(const char* title,
     }
 
     pitch = textureWidth * static_cast<int>(sizeof(uint32_t));
+
+    SDL_AudioSpec want{};
+    want.freq = 44100;
+    want.format = AUDIO_S16SYS;
+    want.channels = 1;
+    want.samples = 512;
+    want.callback = &Platform::audioCallback;
+    want.userdata = this;
+
+    SDL_AudioSpec have{};
+    audioDevice = SDL_OpenAudioDevice(nullptr, 0, &want, & have, 0);
+    if (audioDevice != 0) {
+        phaseIncrement = 440.0 / have.freq; // A4
+    }
 }
 
 Platform::~Platform() {
@@ -46,6 +60,10 @@ Platform::~Platform() {
 }
 
 void Platform::cleanup() noexcept {
+    if (audioDevice != 0) {
+        SDL_CloseAudioDevice(audioDevice);
+        audioDevice = 0;
+    }
     if (texture != nullptr) {
         SDL_DestroyTexture(texture);
         texture = nullptr;
@@ -109,4 +127,30 @@ bool Platform::processInput(std::array<uint8_t, 16>& keys) {
     }
 
     return true;
+}
+
+void Platform::audioCallback(void* userdata, Uint8* stream, int len) {
+    Platform* self = static_cast<Platform*>(userdata);
+
+    int16_t* out = reinterpret_cast<int16_t*>(stream);
+    const int sampleCount = len / static_cast<int>(sizeof(int16_t));
+
+    constexpr int16_t AMPLITUDE = 3000;
+    
+    for (int i = 0; i < sampleCount; ++i) {
+        out[i] = (self->phase < 0.5) ? AMPLITUDE : static_cast<int16_t>(-AMPLITUDE);
+
+        self->phase += self->phaseIncrement;
+        if (self->phase >= 1.0) {
+            self->phase -= 1.0;
+        }
+    }
+}
+
+void Platform::setBeep(bool on) {
+    if (audioDevice == 0 || on == beeping) {
+        return;
+    }
+    beeping = on;
+    SDL_PauseAudioDevice(audioDevice, on ? 0 : 1);
 }

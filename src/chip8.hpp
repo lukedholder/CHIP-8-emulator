@@ -29,6 +29,8 @@ public:
     
     void tickTimers();
 
+    bool isBeeping() const { return soundTimer > 0; }
+
 private:
     std::array<uint8_t, MEMORY_SIZE>    memory{};
     std::array<uint8_t, REGISTER_COUNT> V{};
