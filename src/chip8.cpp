@@ -2,6 +2,9 @@
 
 #include <fstream>
 #include <cstdio>
+#include <algorithm>
+#include <vector>
+#include <cstddef>
 
 
 namespace {
@@ -27,12 +30,20 @@ constexpr std::array<uint8_t, Chip8::FONTSET_SIZE> FONTSET = {
 
 }
 
-Chip8::Chip8() : rng(std::random_device{}()) {
+Chip8::Chip8(Quirks q) : quirks(q), rng(std::random_device{}()) {
     pc = START_ADDRESS;
 
     for (unsigned int i = 0; i < FONTSET_SIZE; ++i) {
-        memory[FONTSET_START_ADDRESS + i] = FONTSET[i];
+        writeMemory(static_cast<uint16_t>(FONTSET_START_ADDRESS + i), FONTSET[i]);
     }
+}
+
+bool Chip8::loadROM(const uint8_t* data, std::size_t size) {
+    if (data == nullptr || size == 0 || size > MEMORY_SIZE - START_ADDRESS) {
+        return false;
+    }
+    std::copy_n(data, size, memory.begin() + START_ADDRESS);
+    return true;
 }
 
 bool Chip8::loadROM(const std::string& filename) {
@@ -45,17 +56,18 @@ bool Chip8::loadROM(const std::string& filename) {
 
     const std::streamsize size = file.tellg();
     // Reject oversized ROMs: writing past memory.end() would be a buffer overflow.
-    if (size <= 0 || static_cast<unsigned int>(size) > MEMORY_SIZE - START_ADDRESS) {
+    if (size <= 0) {
         return false;
     }
 
     file.seekg(0, std::ios::beg);
 
-    if (!file.read(reinterpret_cast<char*>(memory.data() + START_ADDRESS), size)) {
+    std::vector<uint8_t> buffer(static_cast<std::size_t>(size));
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
         return false;
     }
 
-    return true;
+    return loadROM(buffer.data(), buffer.size());
 }
 
 void Chip8::unknownOpcode(uint16_t opcode) {
@@ -77,7 +89,8 @@ void Chip8::tickTimers() {
 }
 
 void Chip8::cycle() {
-    const uint16_t opcode = static_cast<uint16_t>((memory[pc] << 8) | memory[pc + 1]);
+    const uint16_t opcode = static_cast<uint16_t>(
+        (readMemory(pc) << 8) | readMemory(static_cast<uint16_t>(pc + 1)));
     pc += 2;
 
     const uint8_t x     = static_cast<uint8_t>((opcode & 0x0F00) >> 8);
@@ -159,14 +172,23 @@ void Chip8::cycle() {
                 
                 case 0x0001:    // 8XY1: VX |= VY   (OR)
                     V[x] = static_cast<uint8_t>(V[x] | V[y]);
+                    if (quirks.logicResetsVF) {
+                        V[0xF] = 0;
+                    }
                     break;
 
                 case 0x0002:    // 8XY2: VX &= VY   (AND)
                     V[x] = static_cast<uint8_t>(V[x] & V[y]);
+                    if (quirks.logicResetsVF) {
+                        V[0xF] = 0;
+                    }
                     break;
 
                 case 0x0003:    // 8XY3: VX ^= VY   (XOR)
                     V[x] = static_cast<uint8_t>(V[x] ^ V[y]);
+                    if (quirks.logicResetsVF) {
+                        V[0xF] = 0;
+                    }
                     break;
 
                 case 0x0004: {  // 8XY4: VX += VY, VF = carry
@@ -184,10 +206,11 @@ void Chip8::cycle() {
                 }
 
                 case 0x0006: {  // 8XY6: VX >>= 1, VF = bit shifted out
-                    const uint8_t flag = static_cast<uint8_t>(V[x] & 0x01);
-                    V[x] = static_cast<uint8_t>(V[x] >> 1);
+                    const uint8_t source = quirks.shiftUsesVY ? V[y] : V[x];
+                    const uint8_t flag = static_cast<uint8_t>(source & 0x01);
+                    V[x] = static_cast<uint8_t>(source >> 1);
                     V[0xF] = flag;
-                    break;  // note: VY was intentionally unused (modern quirk)
+                    break;
                 }
 
                 case 0x0007: {  // 8XY7: VX = VY - VX, VF = 1 if no borrow
@@ -224,9 +247,11 @@ void Chip8::cycle() {
             I = nnn;
             break;
 
-        case 0xB000:    // BNNN: jump to NNN + V0
-            pc = static_cast<uint16_t>((nnn + V[0]) & 0x0FFF);
+        case 0xB000: {  // BNNN / BXNN: jump with register offset
+            const uint8_t offset = quirks.jumpUsesVX ? V[x] : V[0];
+            pc = static_cast<uint16_t>((nnn + offset) & 0x0FFF);
             break;
+        }
 
         case 0xC000:    // CXNN: VX = random byte AND NN
             V[x] = static_cast<uint8_t>(randomByte(rng) & kk);
@@ -246,7 +271,7 @@ void Chip8::cycle() {
                     break;  // clip at the bottom edge
                 }
 
-                const uint8_t spriteByte = memory[I + row];
+                const uint8_t spriteByte = readMemory(static_cast<uint16_t>(I + row));
 
                 for (unsigned int col = 0; col < 8; ++col) {
                     const unsigned int px = startX + col;
@@ -315,21 +340,24 @@ void Chip8::cycle() {
 
                 case 0x0033: {  // FX33: BCD of VX into memory[I...I+2]
                     const uint8_t value = V[x];
-                    memory[I]       = static_cast<uint8_t>(value / 100);
-                    memory[I + 1]   = static_cast<uint8_t>((value / 10) % 10);
-                    memory[I + 2]   = static_cast<uint8_t>(value % 10);
+                    writeMemory(I, static_cast<uint8_t>(value / 100));
+                    writeMemory(I + 1, static_cast<uint8_t>(value / 10) % 10);
+                    writeMemory(I + 2, static_cast<uint8_t>(value % 10));
                     break;
                 }
 
                 case 0x0055:    // FX55: store V0...VX to memory at I
                     for (uint8_t i = 0; i <= x; ++i) {
-                        memory[I + i] = V[i];
+                        writeMemory(static_cast<uint16_t>(I + i), V[i]);
+                    }
+                    if (quirks.loadStoreIncrementsI) {
+                        I = static_cast<uint16_t>(I + x + 1);
                     }
                     break;
 
                 case 0x0065:    // FX65: load V0...VX from memory at I
                     for (uint8_t i = 0; i <= x; ++i) {
-                        V[i] = memory[I + i];
+                        V[i] = readMemory(I + i);
                     }
                     break;
                 

@@ -16,11 +16,18 @@ constexpr double MAX_FRAME_TIME = 0.25;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::fprintf(stderr, "Usage: %s <rom-file> [cycles-per-second (700 by default)]\n", argv[0]);
+        std::fprintf(stderr, "Usage: %s <rom-file> [cycles-per-second] [--schip]\n", argv[0]);
         return 1;
     }
 
-    Chip8 chip8;
+    Quirks quirks = Quirks::chip8();
+    for (int i = 2; i < argc; ++i) {
+        if (std::string(argv[i]) == "--schip") {
+            quirks = Quirks::superChip();
+        }
+    }
+
+    Chip8 chip8(quirks);
     if (!chip8.loadROM(argv[1])) {
         std::fprintf(stderr, "Failed to load ROM: %s\n", argv[1]);
         return 1;
