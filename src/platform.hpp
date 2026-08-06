@@ -4,6 +4,15 @@
 #include <cstdint>
 #include <array>
 
+
+struct InputResult {
+    bool quit = false;
+    bool togglePause = false;
+    bool step = false;
+    bool dumpState = false;
+};
+
+
 class Platform {
 public:
     Platform(const char* title,
@@ -15,7 +24,7 @@ public:
     Platform& operator=(const Platform&) = delete;
 
     void update(const uint32_t* pixels);
-    bool processInput(std::array<uint8_t, 16>& keys);
+    InputResult processInput(std::array<uint8_t, 16>& keys);
 
     void setBeep(bool on);
 
@@ -28,7 +37,7 @@ private:
         double phase = 0.0;
         double phaseIncrement = 0.0;
         bool beeping = false;
-        
+
         SDL_Window* window = nullptr;
         SDL_Renderer* renderer = nullptr;
         SDL_Texture* texture = nullptr;

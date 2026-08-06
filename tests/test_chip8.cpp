@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "chip8.hpp"
+#include "disasm.hpp"
 
 #include <vector>
 
@@ -116,4 +117,12 @@ TEST_CASE("the load/store quirk controls whether I advances") {
         chip8.cycle();
         CHECK(chip8.indexRegister() == 0x400);
     }
+}
+
+TEST_CASE("disassembler produces standard mnemonics") {
+    CHECK(disassemble(0x00E0) == "CLS");
+    CHECK(disassemble(0xA22A) == "LD    I, 22A");
+    CHECK(disassemble(0xD01F) == "DRW   V0, V1, F");
+    CHECK(disassemble(0x8124) == "ADD   V1, V2");
+    CHECK(disassemble(0xFFFF) == "DW    FFFF");
 }

@@ -86,14 +86,22 @@ void Platform::update(const uint32_t* pixels) {
     SDL_RenderPresent(renderer);
 }
 
-bool Platform::processInput(std::array<uint8_t, 16>& keys) {
+InputResult Platform::processInput(std::array<uint8_t, 16>& keys) {
+    InputResult result;
+    
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
-            return false;
+            result.quit = true;
         }
-        if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
-            return false;
+        if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+            switch (event.key.keysym.sym) {
+                case SDLK_ESCAPE:   result.quit = true; break;
+                case SDLK_F1:       result.togglePause = true; break;
+                case SDLK_F2:       result.step = true; break;
+                case SDLK_F3:       result.dumpState = true; break;
+                default: break;
+            }
         }
     }
 
@@ -126,7 +134,7 @@ bool Platform::processInput(std::array<uint8_t, 16>& keys) {
         keys[i] = state[KEYMAP[i]] ? 1 : 0;
     }
 
-    return true;
+    return result;
 }
 
 void Platform::audioCallback(void* userdata, Uint8* stream, int len) {
