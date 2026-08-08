@@ -2,11 +2,6 @@
 
 #include <cstdio>
 
-namespace {
-
-std::string format(const char* fmt, ...) = delete;  // avoid varargs; see below
-
-}  // namespace
 
 std::string disassemble(uint16_t opcode) {
     char buf[24];

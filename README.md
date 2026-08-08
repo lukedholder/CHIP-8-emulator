@@ -1,4 +1,4 @@
-# CHIP-8-emulator
+# CHIP-8 Emulator
 [![CI](https://github.com/lukedholder/CHIP-8-emulator/actions/workflows/ci.yml/badge.svg)](https://github.com/lukedholder/CHIP-8-emulator/actions/workflows/ci.yml)
 
 ![Dino Run playing in the emulator](docs/dinorun.gif)
@@ -69,6 +69,9 @@ chip8.exe <rom-file> [cycles-per-second] [--schip] [--pause]
 
 Arguments after the ROM path may appear in any order.
 
+Playable games are bundled under `roms/Chip8/`, and the Timendus test suite
+under `roms/bin/`.
+
 ```bash
 ./build/Debug/chip8.exe roms/Chip8/dinorun.ch8
 ```
@@ -130,6 +133,7 @@ included under `roms/bin/`:
 | `6-keypad` | Passes all three sections |
 | `7-beep` | Passes |
 | `5-quirks` | Reports behaviour matching the selected profile |
+| `8-scrolling` | Not supported — requires SUPER-CHIP display modes |
 
 ![The corax+ test display](docs/corax+.png)
 
@@ -196,6 +200,7 @@ src/
 tests/
   test_chip8.cpp     Catch2 unit tests
 roms/
+  Chip8/             playable games
   bin/               Timendus test suite (.ch8 binaries and .8o sources)
 ```
 
