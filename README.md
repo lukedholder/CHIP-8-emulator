@@ -1,4 +1,5 @@
 # CHIP-8-emulator
+[![CI](https://github.com/lukedholder/CHIP-8-emulator/actions/workflows/ci.yml/badge.svg)](https://github.com/lukedholder/CHIP-8-emulator/actions/workflows/ci.yml)
 
 
 Work-in-Progress Project
